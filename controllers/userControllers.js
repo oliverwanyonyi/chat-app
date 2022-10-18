@@ -70,7 +70,7 @@ export const updateProfile = async (req, res, next) => {
     const user = await User.findById(userId);
     if(user){
       user.bio = bio;
-      req.body.avatar ? user.avatar = req.body.avatar: user.avatar = usre.avatar
+      req.body.avatar ? user.avatar = req.body.avatar: user.avatar = user.avatar
       const updatedUser = await user.save();
       res.json({
         success: true,

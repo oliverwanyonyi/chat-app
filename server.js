@@ -44,7 +44,7 @@ async function dbConnectoion() {
 
 const io = new Server(server, {
   cors: {
-    origin:"https://talktoo.netlify.app",
+    origin: "https://talktoo.netlify.app",
   },
 });
 let users = new Map();
@@ -67,22 +67,16 @@ io.on("connection", (socket) => {
       let receiver = users.get(data.to).socketId;
       socket.to(receiver).emit("stopped-typing");
     });
-    socket.on("message-read", (data) => {
-      let reader = users.get(data.userId).socketId;
-      console.log(reader);
-      
-        socket.to(reader).emit("message-opened");
-      
-    });
     socket.on("message-sent", (data) => {
       let receiver = users.get(data.to).socketId;
-      if (receiver)
+      if (receiver) {
         socket
           .to(receiver)
-          .emit("message-received", { message: data.message, fromSelf: false });
-
-      if (receiver) {
-        socket.to(receiver).emit("notification");
+          .emit("message-received", {
+            message: data.message,
+            fromSelf: false,
+            notification: true,
+          });
       }
     });
   });
