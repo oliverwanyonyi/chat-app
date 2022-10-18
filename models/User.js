@@ -19,7 +19,7 @@ const userSchema = new mongoose.Schema({
   bio:{
     type:String,
     required:true,
-    default:"Hey there iam using Tiktalk!"
+    default:"Hey there iam using Talktoo!"
   },
   avatar:{
     type:String,
