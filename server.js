@@ -41,10 +41,12 @@ async function dbConnectoion() {
   const connected = await mongoose.connect(process.env.MONGO_URI);
   console.log(`mongodb Connected on host ${connected.connection.host}`);
 }
+// origin: "https://talktoo.netlify.app",
+// origin: "http://localhost:3000",
 
 const io = new Server(server, {
   cors: {
-    origin: "https://talktoo.netlify.app",
+    origin: "http://localhost:3000",
   },
 });
 let users = new Map();
@@ -60,8 +62,8 @@ io.on("connection", (socket) => {
 
     socket.on("typing", (data) => {
       let receiver = users.get(data.to).socketId;
-
-      socket.to(receiver).emit("user-typing", data.text);
+         console.log(data.from)
+      socket.to(receiver).emit("user-typing", {text:data.text,from:data.from});
     });
     socket.on("typing-stopped", (data) => {
       let receiver = users.get(data.to).socketId;
