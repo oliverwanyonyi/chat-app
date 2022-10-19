@@ -46,7 +46,7 @@ async function dbConnectoion() {
 
 const io = new Server(server, {
   cors: {
-    origin: "https://talktoo.netlify.app",
+    origin: "http://localhost:3000",
   },
 });
 let users = new Map();
@@ -62,8 +62,10 @@ io.on("connection", (socket) => {
 
     socket.on("typing", (data) => {
       let receiver = users.get(data.to).socketId;
-         console.log(data.from)
-      socket.to(receiver).emit("user-typing", {text:data.text,from:data.from});
+      console.log(data.from);
+      socket
+        .to(receiver)
+        .emit("user-typing", { text: data.text, from: data.from });
     });
     socket.on("typing-stopped", (data) => {
       let receiver = users.get(data.to).socketId;
@@ -72,13 +74,17 @@ io.on("connection", (socket) => {
     socket.on("message-sent", (data) => {
       let receiver = users.get(data.to).socketId;
       if (receiver) {
-        socket
-          .to(receiver)
-          .emit("message-received", {
+        socket.to(receiver).emit("message-received", {
+          message: {
             message: data.message,
             fromSelf: false,
-            notification: true,
-          });
+          },
+          notification: {
+            text: `new unread message from ${users.get(data.from).username}`,
+            from: data.from,
+            count: [1],
+          },
+        });
       }
     });
   });
