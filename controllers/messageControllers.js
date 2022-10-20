@@ -10,8 +10,9 @@ export const createMessage = async (req, res, next) => {
       sender: from,
     });
     if (createdMessage) {
+      console.log(createdMessage)
       return res.json({
-        message: "Message stored in database",
+        createdAt:createdMessage.createdAt
       });
     } else {
       return res.json({
@@ -35,6 +36,7 @@ export const getMessages = async (req,res,next) => {
       return {
         fromSelf: msg.sender.toString() === from,
         message: msg.text,
+        createdAt:msg.createdAt
       };
     });
    
