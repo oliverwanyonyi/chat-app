@@ -53,6 +53,7 @@ let users = new Map();
 io.on("connection", (socket) => {
   console.log("user conneted");
   socket.on("join", (data) => {
+    console.log("joined");
     users.set(data.userId, { ...data, socketId: socket.id });
     let newUsers = [];
     for (const user of users) {
@@ -62,7 +63,7 @@ io.on("connection", (socket) => {
 
     socket.on("typing", (data) => {
       let receiver = users.get(data.to).socketId;
-      console.log(data.from);
+      console.log("from" + data.from, "receiver" + receiver);
       socket
         .to(receiver)
         .emit("user-typing", { text: data.text, from: data.from });
@@ -78,12 +79,13 @@ io.on("connection", (socket) => {
           message: {
             message: data.message,
             fromSelf: false,
-          },
-          notification: {
-            text: `new unread message from ${users.get(data.from).username}`,
             from: data.from,
-            count: [1],
           },
+        });
+        socket.to(receiver).emit("new-notification", {
+          text: `new unread message from ${users.get(data.from).username}`,
+          from: data.from,
+          count: 1,
         });
       }
     });
