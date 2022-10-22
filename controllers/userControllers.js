@@ -91,3 +91,25 @@ export const updateProfile = async (req, res, next) => {
   }
  
 };
+
+
+export const searchUsers =async (req,res) =>{
+  const searchTerm = req.query.search
+  ? {
+      username : {
+        $regex: req.query.search,
+        $options: "i",
+      },
+      _id :{$ne:req.params.id}
+    }
+  : {};
+  const users = await User.find(searchTerm)
+   if(users){
+    res.status(200).json(users);
+   }else{
+    res.status(404).json({
+      success:false,
+      message:"user not found"
+    })
+   }
+}

@@ -5,7 +5,7 @@ import { Server } from "socket.io";
 import http from "http";
 import userRoutes from "./routes/userRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
-
+import chatRoutes from './routes/chatRoutes.js'
 import { errorHandler, notFound } from "./middlewares/error.js";
 import mongoose from "mongoose";
 
@@ -22,7 +22,7 @@ app.use(cors());
 
 app.use("/api/users", userRoutes);
 app.use("/api/message", messageRoutes);
-
+app.use('/api/chat', chatRoutes)
 // error handling
 
 app.use(notFound);
@@ -46,7 +46,7 @@ async function dbConnectoion() {
 
 const io = new Server(server, {
   cors: {
-    origin:"https://talktoo.netlify.app",
+    origin:"http://localhost:3000",
   },
 });
 let users = new Map();
@@ -55,6 +55,8 @@ io.on("connection", (socket) => {
   socket.on("join", (data) => {
     console.log("joined");
     users.set(data.userId, { ...data, socketId: socket.id });
+    console.log(users)
+
     let newUsers = [];
     for (const user of users) {
       newUsers.push(user[1]);
@@ -62,48 +64,52 @@ io.on("connection", (socket) => {
     io.emit("newUsers", newUsers);
 
     socket.on("typing", (data) => {
-      let receiver = users.get(data.to).socketId;
-      console.log("from" + data.from, "receiver" + receiver);
+      let receiver = users.get(data.to);
+     if(receiver){
       socket
-        .to(receiver)
-        .emit("user-typing", { text: data.text, from: data.from });
+      .to(receiver.socketId)
+      .emit("user-typing", { text: data.text, from: data.from, chatId:data.chatId });
+     }   
     });
     socket.on("typing-stopped", (data) => {
-      let receiver = users.get(data.to).socketId;
-      socket.to(receiver).emit("stopped-typing");
+      let receiver = users.get(data.to)
+      if(receiver){
+        socket.to(receiver.socketId).emit("stopped-typing");
+      }
     });
     socket.on("message-sent", (data) => {
-      let receiver = users.get(data.to).socketId;
+      let receiver = users.get(data.to)
+      console.log(data,receiver,users)
+
       if (receiver) {
-        socket.to(receiver).emit("message-received", {
+        socket.to(receiver.socketId).emit("message-received", {
           message: {
             message: data.message,
             fromSelf: false,
-            from: data.from,
-            createdAt:data.createdAt
+            createdAt:data.createdAt,
+            chatId:data.chatId
           },
         });
-        socket.to(receiver).emit("new-notification", {
+        socket.to(receiver.socketId).emit("new-notification", {
+          chatId:data.chatId,
           text: `new unread message from ${users.get(data.from).username}`,
-          from: data.from,
           count: 1,
         });
       }
     });
   });
 
+
   socket.on("disconnect", () => {
     let newUsers = [];
     for (const user of users) {
       newUsers.push(user[1]);
     }
-
-    const userIndex = newUsers.findIndex((user) => user.socketId === socket.id);
-    if (userIndex !== -1) {
-      newUsers[userIndex].online = false;
+    newUsers = newUsers.filter(user=>user.socketId !== socket.id)
+   
       io.emit("newUsers", newUsers);
 
       socket.disconnect();
-    }
+
   });
 });

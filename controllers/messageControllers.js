@@ -1,16 +1,22 @@
+import Chat from "../models/Chat.js";
 import Message from "../models/Message.js";
 
 export const createMessage = async (req, res, next) => {
   
   try {
-    const { from, to, message } = req.body;
+    const { from, chatId, message } = req.body;
     const createdMessage = await Message.create({
     text: message,
-      users: [from, to],
       sender: from,
+      chatId
     });
     if (createdMessage) {
-      console.log(createdMessage)
+      // console.log(createdMessage)
+      const chat = await Chat.findById(chatId)
+      chat.lastMessage.text = message;
+      chat.lastMessage.time = Date.now();
+
+      await chat.save()
       return res.json({
         createdAt:createdMessage.createdAt
       });
@@ -27,14 +33,14 @@ export const createMessage = async (req, res, next) => {
 export const getMessages = async (req,res,next) => {
     
   try {
-    const { from, to } = req.query;
-  
-    let messages = await Message.find({users:{$all:[from,to]}}).sort({ updatedAt: 1 });
+    const chatId = req.params.id;
+    const {from} = req.query
+    let messages = await Message.find({chatId:chatId}).sort({ updatedAt: 1 });
     
      
     messages = messages.map((msg) => {
       return {
-        fromSelf: msg.sender.toString() === from,
+        fromSelf: msg.sender.toString() === from.toString(),
         message: msg.text,
         createdAt:msg.createdAt
       };
