@@ -46,7 +46,7 @@ async function dbConnectoion() {
 
 const io = new Server(server, {
   cors: {
-    origin:"https://talktoo.netlify.app",
+    origin: "https://talktoo.netlify.app",
   },
 });
 let users = new Map();
