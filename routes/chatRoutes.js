@@ -4,6 +4,6 @@ import { createChat, getUserChats } from "../controllers/chatControllers.js";
 const router = express.Router();
 
 router.post('/create',createChat);
-router.get("/:id",getUserChats)
+router.get("/:id",getUserChats);
 
 export default router;

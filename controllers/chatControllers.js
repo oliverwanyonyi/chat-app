@@ -16,7 +16,7 @@ export const createChat = async (req, res, next) => {
         name: req.body.name,
         users: [req.query.from, req.query.to],
       });
-      const newChat = await chat
+      const newChat = await Chat
         .populate("users", ["username", "email", "avatar", "bio", "createdAt"])
         .sort({ updatedAt: -1 });
       res.json(newChat);
