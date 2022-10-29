@@ -64,7 +64,7 @@ export const login = async (req, res, next) => {
 };
 
 export const updateProfile = async (req, res, next) => {
-  console.log('tereng')
+  console.log("tereng");
   const bio = req.body.bio;
   const userId = req.params.id;
   try {
@@ -126,9 +126,9 @@ export const saveNotif = async (req, res, next) => {
     );
     if (exists !== -1) {
       notifications[exists].count += 1;
+      notifications[exists].createdAt = Date.now();
       user.notifications = notifications;
     } else {
-      
       user.notifications.unshift({ ...notif, createdAt: Date.now() });
     }
     const updatedUser = await user.save();
@@ -138,30 +138,29 @@ export const saveNotif = async (req, res, next) => {
 };
 
 export const clearReadNotifs = async (req, res, next) => {
- 
-   try {
-    const user = await User.findById(req.body.userId)
-    if(user){
+  try {
+    const user = await User.findById(req.body.userId);
+    if (user) {
       let notifications = user.notifications;
-      notifications = notifications.filter((notif)=>notif.chatId.toString() !== req.body.chatId);
+      notifications = notifications.filter(
+        (notif) => notif.chatId.toString() !== req.body.chatId
+      );
       user.notifications = notifications;
       await user.save();
     }
-   } catch (error) {
-    next(error)
-   }
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const getNotifs = async(req,res,next) =>{
-  
+export const getNotifs = async (req, res, next) => {
   const user = await User.findById(req.query.userId);
-  
- if(user){
-  res.status(200).json(user.notifications)
 
- }else{
-  res.status(400).json({
-    message:"user with the id" + req.query.userId +"not found"
-  })
- }
-}
+  if (user) {
+    res.status(200).json(user.notifications);
+  } else {
+    res.status(400).json({
+      message: "user with the id" + req.query.userId + "not found",
+    });
+  }
+};
