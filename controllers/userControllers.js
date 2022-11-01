@@ -122,8 +122,9 @@ export const saveNotif = async (req, res, next) => {
 
     let notifications = user.notifications;
     let exists = notifications.findIndex(
-      (notif) => notif.chatId === notif.chatId
+      (n) => n.chatId.toString() === notif.chatId
     );
+    console.log(exists)
     if (exists !== -1) {
       notifications[exists].count += 1;
       notifications[exists].createdAt = Date.now();
