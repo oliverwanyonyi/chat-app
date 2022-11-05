@@ -6,9 +6,8 @@ export const register = async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
     const userExists = await User.findOne({ email: req.body.email });
     if (userExists) {
-      return res.status(400).json({
-        message: "User with that email already exists",
-      });
+      res.status(400)
+      throw new Error("User with that email already exists")   
     }
     let user = await User.create({ ...req.body, password: hashedPassword });
     if (user) {
@@ -24,10 +23,8 @@ export const register = async (req, res, next) => {
         success: true,
       });
     } else {
-      res.status(400).json({
-        success: false,
-        message: "something went wrong user not created",
-      });
+      res.status(400)
+      throw new Error("registration was unsuccesful")
     }
   } catch (error) {
     return next(error);
@@ -53,10 +50,8 @@ export const login = async (req, res, next) => {
         success: true,
       });
     } else {
-      res.status(400).json({
-        message: "Wrong username or password",
-        success: false,
-      });
+      res.status(400);
+      throw new Error("Invalid Email Or Password");
     }
   } catch (error) {
     return next(error);
@@ -64,7 +59,7 @@ export const login = async (req, res, next) => {
 };
 
 export const updateProfile = async (req, res, next) => {
-  console.log("tereng");
+ 
   const bio = req.body.bio;
   const userId = req.params.id;
   try {
@@ -83,13 +78,11 @@ export const updateProfile = async (req, res, next) => {
         },
       });
     } else {
-      res.status(400).json({
-        success: false,
-        message: "invalid userId",
-      });
+      res.status(400)
+      throw new Error("Invalid UserId");
     }
   } catch (error) {
-    console.log(error);
+    next(error);
   }
 };
 
@@ -124,7 +117,7 @@ export const saveNotif = async (req, res, next) => {
     let exists = notifications.findIndex(
       (n) => n.chatId.toString() === notif.chatId
     );
-    console.log(exists)
+    console.log(exists);
     if (exists !== -1) {
       notifications[exists].count += 1;
       notifications[exists].createdAt = Date.now();
