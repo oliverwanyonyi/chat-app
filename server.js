@@ -6,6 +6,7 @@ import http from "http";
 import userRoutes from "./routes/userRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
+
 import { errorHandler, notFound } from "./middlewares/error.js";
 import mongoose from "mongoose";
 
@@ -23,6 +24,7 @@ app.use(cors());
 app.use("/api/users", userRoutes);
 app.use("/api/message", messageRoutes);
 app.use("/api/chat", chatRoutes);
+
 // error handling
 
 app.use(notFound);
@@ -60,45 +62,106 @@ io.on("connection", (socket) => {
     for (const user of users) {
       newUsers.push(user[1]);
     }
+
     io.emit("newUsers", newUsers);
 
     socket.on("typing", (data) => {
-      let receiver = users.get(data.to);
-      if (receiver) {
-        socket
-          .to(receiver.socketId)
-          .emit("user-typing", {
+      if (data.groupTyping) {
+        const receivers = [];
+        for (const id of data.to) {
+          if (users.get(id)) {
+            receivers.push(users.get(id).socketId);
+          }
+        }
+        receivers.map((receiver) =>
+          socket.to(receiver).emit("user-typing", {
+            text: data.text,
+            from: data.from,
+            chatId: data.chatId,
+          })
+        );
+      } else {
+        let receiver = users.get(data.to);
+        if (receiver) {
+          socket.to(receiver.socketId).emit("user-typing", {
             text: data.text,
             from: data.from,
             chatId: data.chatId,
           });
+        }
       }
     });
     socket.on("typing-stopped", (data) => {
-      let receiver = users.get(data.to);
-      if (receiver) {
-        socket.to(receiver.socketId).emit("stopped-typing");
+      if (data.groupTyping) {
+        const receivers = [];
+
+        for (const id of data.to) {
+         
+          if (users.get(id)) {
+            receivers.push(users.get(id).socketId);
+          }
+        }
+        receivers.map((receiver) =>
+          socket.to(receiver).emit("stopped-typing", { from: data.from })
+        );
+      } else {
+        let receiver = users.get(data.to);
+        if (receiver) {
+          socket
+            .to(receiver.socketId)
+            .emit("stopped-typing", { from:data.from });
+        }
       }
     });
     socket.on("message-sent", (data) => {
-      let receiver = users.get(data.to);
+      if (data.groupMessage) {
+        const receivers = [];
 
-      if (receiver) {
-        socket.to(receiver.socketId).emit("message-received", {
-          message: {
-            message: data.message,
-            fromSelf: false,
-            createdAt: data.createdAt,
+        for (const id of data.to) {
+          if (users.get(id)) {
+            receivers.push(users.get(id).socketId);
+          }
+        }
+
+        receivers.map((receiver) =>{
+          socket.to(receiver).emit("message-received", {
+            message: {
+              message: data.message,
+              fromSelf: false,
+              createdAt: data.createdAt,
+              chatId: data.chatId,
+            },
+          })
+          socket.to(receiver).emit("new-notification", {
             chatId: data.chatId,
-          },
-        });
-        socket.to(receiver.socketId).emit("new-notification", {
-          chatId: data.chatId,
-          text: `new unread message from ${users.get(data.from).username}`,
-          count: 1,
-          to: data.to,
-          createdAt: new Date(),
-        });
+            text: `new unread message from ${users.get(data.from).username}`,
+            count: 1,
+            to: data.to,
+            createdAt: new Date(),
+          });
+        }
+        );
+      } else {
+        let receiver = users.get(data.to);
+
+        if (receiver) {
+          socket.to(receiver.socketId).emit("message-received", {
+            message: {
+              message: data.message,
+              fromSelf: false,
+              createdAt: data.createdAt,
+              chatId: data.chatId,
+            },
+          });
+
+          socket.to(receiver.socketId).emit("new-notification", {
+            chatId: data.chatId,
+            text: `new unread message from ${users.get(data.from).username}`,
+            count: 1,
+            to: data.to,
+            createdAt: new Date(),
+          });
+        }
       }
     });
   });
@@ -108,6 +171,7 @@ io.on("connection", (socket) => {
     for (const user of users) {
       newUsers.push(user[1]);
     }
+
     newUsers = newUsers.filter((user) => user.socketId !== socket.id);
 
     io.emit("newUsers", newUsers);

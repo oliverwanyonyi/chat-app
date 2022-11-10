@@ -96,9 +96,11 @@ export const searchUsers = async (req, res) => {
         _id: { $ne: req.params.id },
       }
     : {};
-  const users = await User.find(searchTerm);
+  const users = await User.find(searchTerm).select('-password');
   if (users) {
-    res.status(200).json(users);
+    res.status(200).json({
+      users
+    });
   } else {
     res.status(404).json({
       success: false,
@@ -110,14 +112,15 @@ export const searchUsers = async (req, res) => {
 export const saveNotif = async (req, res, next) => {
   try {
     const { notif } = req.body;
-
-    const user = await User.findById(notif.to);
+console.log(notif.to)
+    for(const userId of notif.to){
+        
+    const user = await User.findById(userId);
 
     let notifications = user.notifications;
     let exists = notifications.findIndex(
       (n) => n.chatId.toString() === notif.chatId
     );
-    console.log(exists);
     if (exists !== -1) {
       notifications[exists].count += 1;
       notifications[exists].createdAt = Date.now();
@@ -125,7 +128,8 @@ export const saveNotif = async (req, res, next) => {
     } else {
       user.notifications.unshift({ ...notif, createdAt: Date.now() });
     }
-    const updatedUser = await user.save();
+     await user.save();
+  }
   } catch (error) {
     next(error);
   }
