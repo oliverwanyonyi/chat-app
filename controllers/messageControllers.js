@@ -38,6 +38,7 @@ export const getMessages = async (req, res, next) => {
 
     messages = messages.map((msg) => {
       return {
+        sender:msg.sender,
         fromSelf: msg.sender.toString() === from.toString(),
         message: msg.text,
         createdAt: msg.createdAt,

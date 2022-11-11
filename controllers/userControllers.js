@@ -65,7 +65,9 @@ export const updateProfile = async (req, res, next) => {
   try {
     const user = await User.findById(userId);
     if (user) {
-      user.bio = bio;
+      user.bio = bio 
+      user.username = req.body.username;
+      user.email=req.body.email
       req.body.avatar
         ? (user.avatar = req.body.avatar)
         : (user.avatar = user.avatar);
@@ -75,6 +77,8 @@ export const updateProfile = async (req, res, next) => {
         user: {
           bio: updatedUser.bio,
           avatar: updatedUser.avatar,
+          username:updatedUser.username,
+          email:updatedUser.email
         },
       });
     } else {
@@ -112,7 +116,6 @@ export const searchUsers = async (req, res) => {
 export const saveNotif = async (req, res, next) => {
   try {
     const { notif } = req.body;
-console.log(notif.to)
     for(const userId of notif.to){
         
     const user = await User.findById(userId);

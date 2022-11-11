@@ -128,13 +128,14 @@ io.on("connection", (socket) => {
             message: {
               message: data.message,
               fromSelf: false,
+              sender:data.sender,
               createdAt: data.createdAt,
               chatId: data.chatId,
             },
           })
           socket.to(receiver).emit("new-notification", {
             chatId: data.chatId,
-            text: `new unread message from ${users.get(data.from).username}`,
+            text: `new unread message from ${users.get(data.sender).username}`,
             count: 1,
             to: data.to,
             createdAt: new Date(),
@@ -156,7 +157,7 @@ io.on("connection", (socket) => {
 
           socket.to(receiver.socketId).emit("new-notification", {
             chatId: data.chatId,
-            text: `new unread message from ${users.get(data.from).username}`,
+            text: `new unread message from ${users.get(data.sender).username}`,
             count: 1,
             to: data.to,
             createdAt: new Date(),
