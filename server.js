@@ -48,7 +48,7 @@ async function dbConnectoion() {
 
 const io = new Server(server, {
   cors: {
-    origin: "https://talktoo.netlify.app",
+    origin: "https://talktoo.netlify.app"
   },
 });
 let users = new Map();
@@ -126,10 +126,10 @@ io.on("connection", (socket) => {
         receivers.map((receiver) =>{
           socket.to(receiver).emit("message-received", {
             message: {
-              message: data.message,
+              message:data.message,
               fromSelf: false,
               sender:data.sender,
-              createdAt: data.createdAt,
+              updatedAt: data.updatedAt,
               chatId: data.chatId,
             },
           })
@@ -150,7 +150,7 @@ io.on("connection", (socket) => {
             message: {
               message: data.message,
               fromSelf: false,
-              createdAt: data.createdAt,
+              updatedAt: data.updatedAt,
               chatId: data.chatId,
             },
           });
@@ -165,8 +165,31 @@ io.on("connection", (socket) => {
         }
       }
     });
-  });
+    socket.on('group-created',(data)=>{
+      console.log(data)
+      const activeMembers = [];
 
+      for (const id of data.chat.members){
+        if(users.get(id)){
+          activeMembers.push(users.get(id).socketId)
+        }
+      }
+      activeMembers.map(member=>socket.to(member).emit('new-group',data))
+    })
+  });
+  socket.on('user-removed',(data)=>{
+    console.log(data)
+    const activeMembers = [];
+
+      for (const id of data.users){
+        if(users.get(id)){
+          activeMembers.push(users.get(id).socketId)
+        }
+      }
+
+      activeMembers.map(m=> socket.to(m).emit('removed',data))
+   
+  })
   socket.on("disconnect", () => {
     let newUsers = [];
     for (const user of users) {

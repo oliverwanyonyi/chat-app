@@ -1,5 +1,6 @@
 import express from "express";
 import { createChat, createGroup,updateGroup, getUserChats, removeFromGroup, leaveGroup } from "../controllers/chatControllers.js";
+import Chat from "../models/Chat.js";
 
 const router = express.Router();
 
@@ -10,6 +11,16 @@ router.post('/group/create/:admin',createGroup)
 router.put('/group/update/:admin',updateGroup)
 router.put('/group/remove/:admin',removeFromGroup)
 router.put('/group/leave/:id',leaveGroup)
-
+router.put('/last',async(req,res,next)=>{
+    const chat = await Chat.findById(req.body.chat);
+    try {
+        
+        chat.last  = req.body.last;
+        const saved = await chat.save()
+        res.json(saved)
+    } catch (error) {
+        next(error)
+    }
+})
 
 export default router;

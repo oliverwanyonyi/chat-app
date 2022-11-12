@@ -11,20 +11,19 @@ export const createChat = async (req, res, next) => {
       ],
     })
       .populate("users", ["username", "email", "avatar", "bio", "createdAt"])
-      .sort({ updatedAt: -1 });
+      .populate("lastMessage", ["text", "updatedAt"])
 
     if (chatExists) {
       res.status(200).json(chatExists);
     } else {
       const chat = await Chat.create({
-        creator: req.query.from,
         users: [req.query.from, req.query.to],
         isGroup: false,
         groupAvatar: null,
       });
       const newChat = await Chat.findById(chat._id)
         .populate("users", ["username", "email", "avatar", "bio", "createdAt"])
-        .sort({ updatedAt: -1 });
+        .populate("lastMessage", ["text", "updatedAt"]);
       res.status(201).json(newChat);
     }
   } catch (error) {
@@ -38,6 +37,7 @@ export const getUserChats = async (req, res, next) => {
       users: { $elemMatch: { $eq: req.params.id } },
     })
       .populate("users", ["username", "email", "avatar", "bio", "createdAt"])
+      .populate("lastMessage", ["text", "updatedAt"])
       .sort({ updatedAt: -1 });
     if (userchats) {
       res.status(200).json(userchats);
@@ -65,13 +65,9 @@ export const createGroup = async (req, res, next) => {
       name: groupName,
       groupAvatar: avatar,
     });
-    const group = await Chat.findById(newGroup._id).populate("users", [
-      "username",
-      "email",
-      "avatar",
-      "bio",
-      "createdAt",
-    ]);
+    const group = await Chat.findById(newGroup._id)
+      .populate("users", ["username", "email", "avatar", "bio", "createdAt"])
+      .populate("lastMessage", ["text", "updatedAt"]);
     res.status(201).json(group);
   } catch (error) {
     next(error);
@@ -131,13 +127,10 @@ export const removeFromGroup = async (req, res, next) => {
         (user) => user._id.toString() !== userToRemove
       );
       await groupToUpdate.save();
-      const updatedGroup = await Chat.findById(groupToUpdate._id).populate("users", [
-        "username",
-        "email",
-        "avatar",
-        "bio",
-        "createdAt",
-      ]);
+      const updatedGroup = await Chat.findById(groupToUpdate._id).populate(
+        "users",
+        ["username", "email", "avatar", "bio", "createdAt"]
+      );
 
       res.status(201).json(updatedGroup);
     }
@@ -146,16 +139,17 @@ export const removeFromGroup = async (req, res, next) => {
   }
 };
 
-
-export const leaveGroup =async(req,res,next)=>{
-    const user = req.params.id;
-    try{
-      const group = await Chat.findById(req.body.chatId)
-      group.users = group.users.filter(u=>u._id.toString()!==user)
-      await group.save()
-      res.status(201).json({success:true,left:user})
-    }catch(err){
-      next(err)
-    }
-    
-}
+export const leaveGroup = async (req, res, next) => {
+  const user = req.params.id;
+  try {
+    const group = await Chat.findById(req.body.chatId);
+    group.users = group.users.filter((u) => u._id.toString() !== user);
+    await group.save();
+    const savedChat = await Chat.findById(group._id)
+      .populate("users", ["username", "email", "avatar", "bio", "createdAt"])
+      .populate("lastMessage", ["text", "updatedAt"]);
+    res.status(201).json(savedChat);
+  } catch (err) {
+    next(err);
+  }
+};

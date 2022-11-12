@@ -12,11 +12,12 @@ export const createMessage = async (req, res, next) => {
     if (createdMessage) {
       // console.log(createdMessage)
       const chat = await Chat.findById(chatId);
-      chat.lastMessage.text = message;
-      chat.lastMessage.time = Date.now();
+      chat.lastMessage = createdMessage._id;
       await chat.save();
+    
       return res.json({
-        createdAt: createdMessage.createdAt,
+        message: createdMessage.text,
+        updatedAt: createdMessage.updatedAt,
       });
     } else {
       return res.json({
@@ -32,16 +33,16 @@ export const getMessages = async (req, res, next) => {
   try {
     const chatId = req.params.id;
     const { from } = req.query;
-    let messages = await Message.find({ chatId: chatId }).sort({
+    let messages = await Message.find({ chatId }).sort({
       updatedAt: 1,
     });
 
     messages = messages.map((msg) => {
       return {
-        sender:msg.sender,
+        sender: msg.sender,
         fromSelf: msg.sender.toString() === from.toString(),
         message: msg.text,
-        createdAt: msg.createdAt,
+        updatedAt: msg.updatedAt,
       };
     });
 
