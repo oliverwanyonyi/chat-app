@@ -9,6 +9,7 @@ import chatRoutes from "./routes/chatRoutes.js";
 
 import { errorHandler, notFound } from "./middlewares/error.js";
 import mongoose from "mongoose";
+import { getUsersConnected } from "./controllers/utils/utils.js";
 
 const app = express();
 
@@ -48,7 +49,7 @@ async function dbConnectoion() {
 
 const io = new Server(server, {
   cors: {
-    origin: "https://talktoo.netlify.app"
+    origin: "http://localhost:3000",
   },
 });
 let users = new Map();
@@ -96,7 +97,6 @@ io.on("connection", (socket) => {
         const receivers = [];
 
         for (const id of data.to) {
-         
           if (users.get(id)) {
             receivers.push(users.get(id).socketId);
           }
@@ -109,30 +109,24 @@ io.on("connection", (socket) => {
         if (receiver) {
           socket
             .to(receiver.socketId)
-            .emit("stopped-typing", { from:data.from });
+            .emit("stopped-typing", { from: data.from });
         }
       }
     });
     socket.on("message-sent", (data) => {
       if (data.groupMessage) {
-        const receivers = [];
-
-        for (const id of data.to) {
-          if (users.get(id)) {
-            receivers.push(users.get(id).socketId);
-          }
-        }
-
-        receivers.map((receiver) =>{
+        const { activeMembers: receivers } = getUsersConnected(data.to, users);
+        receivers.map((receiver) => {
           socket.to(receiver).emit("message-received", {
             message: {
-              message:data.message,
+              message: data.message,
               fromSelf: false,
-              sender:data.sender,
+              sender: data.sender,
               updatedAt: data.updatedAt,
               chatId: data.chatId,
+              chat: data.chat,
             },
-          })
+          });
           socket.to(receiver).emit("new-notification", {
             chatId: data.chatId,
             text: `new unread message from ${users.get(data.sender).username}`,
@@ -140,8 +134,7 @@ io.on("connection", (socket) => {
             to: data.to,
             createdAt: new Date(),
           });
-        }
-        );
+        });
       } else {
         let receiver = users.get(data.to);
 
@@ -152,6 +145,7 @@ io.on("connection", (socket) => {
               fromSelf: false,
               updatedAt: data.updatedAt,
               chatId: data.chatId,
+              chat: data.chat,
             },
           });
 
@@ -165,30 +159,21 @@ io.on("connection", (socket) => {
         }
       }
     });
-    socket.on('group-created',(data)=>{
-      console.log(data)
-      const activeMembers = [];
+    socket.on("group-created", (data) => {
+      const { activeMembers } = getUsersConnected(data.chat.members, users);
 
-      for (const id of data.chat.members){
-        if(users.get(id)){
-          activeMembers.push(users.get(id).socketId)
-        }
-      }
-      activeMembers.map(member=>socket.to(member).emit('new-group',data))
-    })
+      activeMembers.map((member) => socket.to(member).emit("new-group", data));
+    });
   });
-  socket.on('user-removed',(data)=>{
-    console.log(data)
-    const activeMembers = [];
+  socket.on("user-removed", (data) => {
+    const { activeMembers } = getUsersConnected(data.users, users);
+    activeMembers.map((m) => socket.to(m).emit("removed", data));
+  });
+  
+  socket.on('someone-left',(data)=>{
+    const { activeMembers } = getUsersConnected(data.users, users);
 
-      for (const id of data.users){
-        if(users.get(id)){
-          activeMembers.push(users.get(id).socketId)
-        }
-      }
-
-      activeMembers.map(m=> socket.to(m).emit('removed',data))
-   
+    activeMembers.map(member=>socket.to(member).emit('someone-left', data))
   })
   socket.on("disconnect", () => {
     let newUsers = [];
