@@ -9,7 +9,7 @@ import chatRoutes from "./routes/chatRoutes.js";
 
 import { errorHandler, notFound } from "./middlewares/error.js";
 import mongoose from "mongoose";
-import { getUsersConnected } from "./controllers/utils/utils.js";
+import { getUsersConnected } from "./utils/utils.js";
 
 const app = express();
 
@@ -49,7 +49,7 @@ async function dbConnectoion() {
 
 const io = new Server(server, {
   cors: {
-    origin: "https://talktoo.netlify.app"
+    origin: "https://talktoo.netlify.app",
   },
 });
 let users = new Map();
@@ -68,12 +68,9 @@ io.on("connection", (socket) => {
 
     socket.on("typing", (data) => {
       if (data.groupTyping) {
-        const receivers = [];
-        for (const id of data.to) {
-          if (users.get(id)) {
-            receivers.push(users.get(id).socketId);
-          }
-        }
+
+        const {receivers} = getUsersConnected(data.to,users);
+       
         receivers.map((receiver) =>
           socket.to(receiver).emit("user-typing", {
             text: data.text,
@@ -94,13 +91,8 @@ io.on("connection", (socket) => {
     });
     socket.on("typing-stopped", (data) => {
       if (data.groupTyping) {
-        const receivers = [];
+        const {receivers} = getUsersConnected(data.to,users);
 
-        for (const id of data.to) {
-          if (users.get(id)) {
-            receivers.push(users.get(id).socketId);
-          }
-        }
         receivers.map((receiver) =>
           socket.to(receiver).emit("stopped-typing", { from: data.from })
         );
@@ -169,12 +161,12 @@ io.on("connection", (socket) => {
     const { activeMembers } = getUsersConnected(data.users, users);
     activeMembers.map((m) => socket.to(m).emit("removed", data));
   });
-  
-  socket.on('someone-left',(data)=>{
+
+  socket.on("someone-left", (data) => {
     const { activeMembers } = getUsersConnected(data.users, users);
 
-    activeMembers.map(member=>socket.to(member).emit('someone-left', data))
-  })
+    activeMembers.map((member) => socket.to(member).emit("someone-left", data));
+  });
   socket.on("disconnect", () => {
     let newUsers = [];
     for (const user of users) {
